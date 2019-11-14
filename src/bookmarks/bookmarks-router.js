@@ -8,6 +8,14 @@ const BookmarksService = require('./bookmarks-service');
 const bookmarksRouter = express.Router();
 const jsonParser = express.json();
 
+const serializeBookmark = bookmark => ({
+    id: bookmark.id,
+    url: bookmark.url,
+    title: xss(bookmark.title),
+    description: xss(bookmark.description),
+    rating: bookmark.rating,
+});
+
 bookmarksRouter
     .route('/')
     .get((req, res, next) => {
@@ -55,7 +63,7 @@ bookmarksRouter
                 if (!bookmark) {
                     return res.status(404).json({
                         error: { message: `Bookmark doesn't exist` }
-                    })
+                    });
                 }
                 res.bookmark = bookmark;// save the article for the next middleware
                 next(); // don't forget to call next so the next middleware happens!
@@ -63,23 +71,7 @@ bookmarksRouter
             .catch(next);
     })
     .get((req, res, next) => {
-        const knexInstance = req.app.get('db');
-        BookmarksService.getById(knexInstance, req.params.bookmark_id)
-            .then(bookmark => {
-                if (!bookmark) {
-                    return res.status(404).json({
-                        error: { message: `Bookmark doesn't exist` }
-                    });
-                }
-                res.json({
-                    id: bookmark.id,
-                    url: bookmark.url,
-                    title: xss(bookmark.title), // sanitize title
-                    description: xss(bookmark.description), // sanitize desc
-                    rating: bookmark.rating,
-                });
-            })
-            .catch(next);
+        res.json(serializeBookmark(res.bookmark));
     })
     .delete((req, res, next) => {
         BookmarksService.deleteBookmark(
